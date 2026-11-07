@@ -27,7 +27,6 @@
       position: relative;
     }
 
-    /* Холст со снегом */
     #snow {
       position: absolute;
       top: 0;
@@ -53,18 +52,26 @@
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
     }
 
-    /* Снежный слой на шапке контейнера */
-    .container-snow-drift {
+    /* Сугроб снега на верхней грани всей панели */
+    .panel-snow-drift {
       position: absolute;
-      top: -3px;
-      left: 15%;
-      right: 15%;
-      height: 0px;
-      background: #ffffff;
-      border-radius: 50% 50% 10px 10px / 100% 100% 0px 0px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
-      transition: height 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      top: -1px;
+      left: 0;
+      right: 0;
+      height: 0px; /* Растет плавно при кликах */
       pointer-events: none;
+      z-index: 6;
+      overflow: hidden;
+      transition: height 1.3s cubic-bezier(0.25, 1, 0.5, 1);
+      filter: drop-shadow(0 2px 6px rgba(255, 255, 255, 0.5));
+    }
+
+    .panel-snow-drift svg {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 28px;
     }
 
     .icon {
@@ -95,27 +102,11 @@
     }
 
     .time-block {
-      position: relative;
       background: rgba(255, 255, 255, 0.08);
       padding: 12px 6px;
       border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-
-    /* Снежные шапочки на блоках времени */
-    .snow-cap {
-      position: absolute;
-      top: -1px;
-      left: -1px;
-      right: -1px;
-      height: 0px; /* Увеличивается программно */
-      background: linear-gradient(180deg, #ffffff 60%, rgba(255, 255, 255, 0.8));
-      border-radius: 14px 14px 6px 6px;
-      box-shadow: 0 1px 6px rgba(255, 255, 255, 0.6);
-      transition: height 0.7s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-      pointer-events: none;
-      z-index: 5;
     }
 
     .time-number {
@@ -124,8 +115,6 @@
       color: #38bdf8;
       text-shadow: 0 0 12px rgba(56, 189, 248, 0.45);
       font-variant-numeric: tabular-nums;
-      position: relative;
-      z-index: 2;
     }
 
     .time-label {
@@ -134,8 +123,6 @@
       margin-top: 4px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      position: relative;
-      z-index: 2;
     }
 
     .btn {
@@ -163,29 +150,32 @@
   <canvas id="snow"></canvas>
 
   <div class="container">
-    <div class="container-snow-drift" id="cardDrift"></div>
+    <!-- Реалистичный волнистый сугроб на кромке панели -->
+    <div class="panel-snow-drift" id="panelDrift">
+      <svg viewBox="0 0 400 28" preserveAspectRatio="none">
+        <path d="M0,28 C30,12 65,4 105,10 C145,16 175,3 215,7 C255,11 285,2 325,8 C360,14 380,10 400,28 Z" fill="#ffffff"/>
+        <path d="M0,28 C40,16 90,11 140,18 C190,24 235,15 285,17 C335,19 370,15 400,28 Z" fill="#e2e8f0" opacity="0.45"/>
+      </svg>
+    </div>
+
     <div class="icon">🎄✨</div>
     <h1 id="title">До Нового Года осталось:</h1>
     <div class="subtitle" id="target-year">Встречаем Новый год!</div>
 
     <div class="countdown">
       <div class="time-block">
-        <div class="snow-cap"></div>
         <div class="time-number" id="days">00</div>
         <div class="time-label">Дней</div>
       </div>
       <div class="time-block">
-        <div class="snow-cap"></div>
         <div class="time-number" id="hours">00</div>
         <div class="time-label">Часов</div>
       </div>
       <div class="time-block">
-        <div class="snow-cap"></div>
         <div class="time-number" id="minutes">00</div>
         <div class="time-label">Мин</div>
       </div>
       <div class="time-block">
-        <div class="snow-cap"></div>
         <div class="time-number" id="seconds">00</div>
         <div class="time-label">Сек</div>
       </div>
@@ -195,14 +185,14 @@
   </div>
 
   <script>
-    // 1. Telegram инициализация
+    // 1. Инициализация Telegram Mini App
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
       tg.expand();
     }
 
-    // 2. Таймер
+    // 2. Логика таймера
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
     document.getElementById('target-year').innerText = `Встречаем ${nextYear} год!`;
@@ -231,7 +221,7 @@
     setInterval(updateCountdown, 1000);
     updateCountdown();
 
-    // 3. Canvas и снежная система
+    // 3. Физика снега
     const canvas = document.getElementById('snow');
     const ctx = canvas.getContext('2d');
     let width = (canvas.width = window.innerWidth);
@@ -243,22 +233,22 @@
     });
 
     // Спокойный фоновый снег
-    const normalFlakes = Array.from({ length: 50 }, () => ({
+    const normalFlakes = Array.from({ length: 45 }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
       radius: Math.random() * 2 + 1,
-      speed: Math.random() * 1 + 0.5,
-      drift: Math.random() * 0.6 - 0.3
+      speed: Math.random() * 0.9 + 0.4,
+      drift: Math.random() * 0.5 - 0.25
     }));
 
-    // Массив для быстрого порыва снежинок
+    // Массив снежинок для медленного вихря
     let gustFlakes = [];
 
     function drawSnow() {
       ctx.clearRect(0, 0, width, height);
 
-      // Рисуем обычный снег
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      // Фоновые снежинки
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       ctx.beginPath();
       for (const flake of normalFlakes) {
         ctx.moveTo(flake.x, flake.y);
@@ -273,82 +263,85 @@
       }
       ctx.fill();
 
-      // Рисуем порыв снега
+      // Медленный, кружащийся порыв
       if (gustFlakes.length > 0) {
-        ctx.beginPath();
         for (let i = gustFlakes.length - 1; i >= 0; i--) {
           const g = gustFlakes[i];
-          ctx.moveTo(g.x, g.y);
-          ctx.arc(g.x, g.y, g.radius, 0, Math.PI * 2);
 
-          g.x += g.vx;
+          ctx.beginPath();
+          ctx.arc(g.x, g.y, g.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${g.alpha})`;
+          ctx.fill();
+
+          // Физика: сопротивление воздуха, покачивание и гравитация
+          g.vx *= 0.991; // мягкое замедление
+          g.vy += 0.015; // легкая гравитация
+          g.flutter += g.flutterSpeed; // покачивание из стороны в сторону
+          
+          g.x += g.vx + Math.sin(g.flutter) * 0.8;
           g.y += g.vy;
           g.life--;
 
-          // Удаляем старые или улетевшие частицы
-          if (g.life <= 0 || g.y > height || g.x < -100 || g.x > width + 100) {
+          // Плавное растворение снежинки в конце жизни
+          if (g.life < 40) {
+            g.alpha = (g.life / 40) * g.baseAlpha;
+          }
+
+          if (g.life <= 0 || g.y > height + 20) {
             gustFlakes.splice(i, 1);
           }
         }
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 6;
-        ctx.fill();
-        ctx.shadowBlur = 0; // сброс тени
       }
 
       requestAnimationFrame(drawSnow);
     }
     drawSnow();
 
-    // 4. Логика кнопки и оседания снега
+    // 4. Логика порыва и оседания сугроба
     let snowLevel = 0;
 
     function sendHolidayVibe() {
-      // Тактильный виброотклик Telegram
       if (tg?.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
       }
 
-      // Случайно выбираем сторону вылета (true = слева, false = справа)
       const fromLeft = Math.random() > 0.5;
-      const startX = fromLeft ? -20 : width + 20;
-      const startY = Math.random() * 80 - 40; // сверху
+      const startX = fromLeft ? -40 : width + 40;
+      const startY = Math.random() * 60 - 30;
 
-      // Создаем 90 снежинок для сгустка
-      for (let i = 0; i < 90; i++) {
-        const spread = (Math.random() - 0.5) * 60;
-        const speed = Math.random() * 8 + 7;
-        const angle = fromLeft ? (Math.PI / 4 + (Math.random() * 0.3 - 0.15)) 
-                               : (3 * Math.PI / 4 + (Math.random() * 0.3 - 0.15));
+      // 80 мягких снежинок в облаке
+      for (let i = 0; i < 80; i++) {
+        const spreadX = (Math.random() - 0.5) * 90;
+        const spreadY = (Math.random() - 0.5) * 70;
+        
+        // Мягкая естественная скорость
+        const speed = Math.random() * 2.8 + 2.0; 
+        const baseAngle = fromLeft ? (Math.PI / 4.5) : (3.2 * Math.PI / 4.5);
+        const angle = baseAngle + (Math.random() * 0.35 - 0.175);
+
+        const baseAlpha = Math.random() * 0.45 + 0.55;
 
         gustFlakes.push({
-          x: startX + spread,
-          y: startY + spread,
+          x: startX + spreadX,
+          y: startY + spreadY,
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          radius: Math.random() * 3 + 1.5,
-          life: 120
+          radius: Math.random() * 2.5 + 1.2,
+          flutter: Math.random() * Math.PI * 2,
+          flutterSpeed: Math.random() * 0.04 + 0.02,
+          baseAlpha: baseAlpha,
+          alpha: baseAlpha,
+          life: Math.floor(Math.random() * 60 + 200) // живут дольше и летят не спеша
         });
       }
 
-      // Снег оседает на панель через короткую задержку полета (~350мс)
+      // Снег оседает на панель ровно тогда, когда облако медленно долетает до нее (~1.2 сек)
       setTimeout(() => {
-        snowLevel = Math.min(snowLevel + 1, 4); // максимум 4 слоя
-        
-        // Нарастание сугробов на 4 блоках
-        const caps = document.querySelectorAll('.snow-cap');
-        const capHeights = [4, 7, 10, 13]; // высота в пикселях
-        caps.forEach(cap => {
-          cap.style.height = `${capHeights[snowLevel - 1]}px`;
-        });
-
-        // Нарастание снега на основном контейнере
-        const cardDrift = document.getElementById('cardDrift');
-        const driftHeights = [3, 5, 8, 10];
-        cardDrift.style.height = `${driftHeights[snowLevel - 1]}px`;
-
-      }, 350);
+        snowLevel = Math.min(snowLevel + 1, 4);
+        const drift = document.getElementById('panelDrift');
+        const heights = [7, 13, 19, 25]; // высота сугроба в пикселях
+        drift.style.height = `${heights[snowLevel - 1]}px`;
+      }, 1200);
     }
   </script>
 </body>
